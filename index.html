@@ -1,0 +1,1295 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Laboratórios Concentrados — Schwarzes Gehirn</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=IBM+Plex+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+  /* ── GRUVBOX PALETTE ─────────────────────────────────── */
+  :root {
+    --bg0-hard:  #1d2021;
+    --bg0:       #282828;
+    --bg1:       #3c3836;
+    --bg2:       #504945;
+    --bg3:       #665c54;
+    --bg4:       #7c6f64;
+    --fg0:       #fbf1c7;
+    --fg1:       #ebdbb2;
+    --fg2:       #d5c4a1;
+    --fg3:       #bdae93;
+    --fg4:       #a89984;
+    --red:       #cc241d;
+    --red-br:    #fb4934;
+    --green:     #98971a;
+    --green-br:  #b8bb26;
+    --yellow:    #d79921;
+    --yellow-br: #fabd2f;
+    --blue:      #458588;
+    --blue-br:   #83a598;
+    --purple:    #b16286;
+    --purple-br: #d3869b;
+    --aqua:      #689d6a;
+    --aqua-br:   #8ec07c;
+    --orange:    #d65d0e;
+    --orange-br: #fe8019;
+
+    --font-mono: 'JetBrains Mono', 'Courier New', monospace;
+    --font-sans: 'IBM Plex Sans', sans-serif;
+    --radius: 4px;
+    --border: 1px solid var(--bg2);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg0-hard);
+    color: var(--fg1);
+    font-family: var(--font-sans);
+    font-size: 15px;
+    line-height: 1.6;
+    min-height: 100vh;
+    position: relative;
+  }
+
+  /* ── VIDEO BACKGROUND & OVERLAY ───────────────────────── */
+  .bg-video {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    z-index: -2;
+  }
+
+  .bg-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(29, 32, 33, 0.85); /* Camada escura com opacidade */
+    z-index: -1;
+  }
+
+  /* ── SCANLINE OVERLAY ─────────────────────────────────── */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.03) 2px,
+      rgba(0,0,0,0.03) 4px
+    );
+    pointer-events: none;
+    z-index: 9999;
+  }
+
+  /* ── SCROLLBAR ────────────────────────────────────────── */
+  ::-webkit-scrollbar { width: 8px; }
+  ::-webkit-scrollbar-track { background: var(--bg0); }
+  ::-webkit-scrollbar-thumb { background: var(--bg3); border-radius: 2px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--yellow); }
+
+  /* ── TOPBAR ───────────────────────────────────────────── */
+  .topbar {
+    background: rgba(40, 40, 40, 0.95);
+    backdrop-filter: blur(5px);
+    border-bottom: 2px solid var(--yellow);
+    padding: 0 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 48px;
+    position: sticky; top: 0; z-index: 100;
+  }
+  .topbar-brand {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--yellow-br);
+    letter-spacing: 0.05em;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .topbar-brand .org {
+    color: var(--fg4);
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+  .dot { color: var(--bg3); }
+  .topbar-nav {
+    display: flex; gap: 0;
+    list-style: none;
+  }
+  .topbar-nav a {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--fg3);
+    text-decoration: none;
+    padding: 0 14px;
+    height: 48px;
+    display: flex; align-items: center;
+    border-left: 1px solid var(--bg2);
+    letter-spacing: 0.04em;
+    transition: color 0.15s, background 0.15s;
+  }
+  .topbar-nav a:hover { color: var(--yellow-br); background: var(--bg1); }
+  .topbar-nav a.active { color: var(--green-br); border-bottom: 2px solid var(--green-br); }
+  .status-pill {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    background: var(--bg1);
+    border: 1px solid var(--green);
+    color: var(--green-br);
+    padding: 2px 10px;
+    border-radius: 2px;
+    letter-spacing: 0.08em;
+  }
+  .status-pill::before { content: '● '; }
+
+  /* ── HERO ─────────────────────────────────────────────── */
+  .hero {
+    background: rgba(40, 40, 40, 0.85);
+    backdrop-filter: blur(5px);
+    border-bottom: 1px solid var(--bg2);
+    padding: 3.5rem 2rem 3rem;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 2rem;
+    align-items: center;
+  }
+  .hero-pre {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--orange-br);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    margin-bottom: 0.6rem;
+  }
+  .hero h1 {
+    font-family: var(--font-mono);
+    font-size: clamp(1.8rem, 4vw, 2.8rem);
+    font-weight: 700;
+    color: var(--fg0);
+    line-height: 1.15;
+    margin-bottom: 0.8rem;
+  }
+  .hero h1 span { color: var(--yellow-br); }
+  .hero-sub {
+    color: var(--fg3);
+    font-size: 14px;
+    max-width: 520px;
+    line-height: 1.7;
+    margin-bottom: 1.4rem;
+  }
+  .hero-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+  .btn {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    padding: 8px 20px;
+    border-radius: var(--radius);
+    cursor: pointer;
+    text-decoration: none;
+    letter-spacing: 0.06em;
+    transition: all 0.15s;
+    display: inline-flex; align-items: center; gap: 6px;
+    border: 1px solid transparent;
+  }
+  .btn-primary {
+    background: var(--yellow);
+    color: var(--bg0-hard);
+    border-color: var(--yellow);
+    font-weight: 700;
+  }
+  .btn-primary:hover { background: var(--yellow-br); border-color: var(--yellow-br); }
+  .btn-secondary {
+    background: transparent;
+    color: var(--blue-br);
+    border-color: var(--blue);
+  }
+  .btn-secondary:hover { background: var(--bg1); border-color: var(--blue-br); }
+  .btn-ghost {
+    background: transparent;
+    color: var(--fg4);
+    border-color: var(--bg3);
+  }
+  .btn-ghost:hover { color: var(--fg1); border-color: var(--fg4); background: var(--bg1); }
+
+  .hero-terminal {
+    background: var(--bg0-hard);
+    border: 1px solid var(--bg2);
+    border-radius: var(--radius);
+    min-width: 320px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    overflow: hidden;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  }
+  .term-bar {
+    background: var(--bg1);
+    padding: 6px 12px;
+    display: flex; align-items: center; gap: 8px;
+    border-bottom: 1px solid var(--bg2);
+  }
+  .term-dot {
+    width: 10px; height: 10px; border-radius: 50%;
+  }
+  .term-dot.r { background: var(--red); }
+  .term-dot.y { background: var(--yellow); }
+  .term-dot.g { background: var(--green); }
+  .term-title { color: var(--fg4); font-size: 11px; margin-left: 4px; }
+  .term-body { padding: 14px 16px; line-height: 1.8; }
+  .term-body .prompt { color: var(--green-br); }
+  .term-body .cmd { color: var(--fg1); }
+  .term-body .out { color: var(--fg3); }
+  .term-body .hi { color: var(--yellow-br); }
+  .term-body .hi2 { color: var(--blue-br); }
+  .term-body .hi3 { color: var(--aqua-br); }
+  .term-body .cursor {
+    display: inline-block;
+    width: 8px; height: 14px;
+    background: var(--yellow-br);
+    vertical-align: middle;
+    animation: blink 1s step-end infinite;
+  }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  /* ── STATS BAR ────────────────────────────────────────── */
+  .stats-bar {
+    background: rgba(60, 56, 54, 0.85);
+    backdrop-filter: blur(5px);
+    border-bottom: 1px solid var(--bg2);
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+  }
+  .stat-item {
+    padding: 1rem 1.5rem;
+    border-right: 1px solid var(--bg2);
+    display: flex; align-items: center; gap: 12px;
+  }
+  .stat-item:last-child { border-right: none; }
+  .stat-icon {
+    font-size: 20px;
+    width: 36px; height: 36px;
+    background: var(--bg2);
+    border-radius: var(--radius);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .stat-val {
+    font-family: var(--font-mono);
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--yellow-br);
+    line-height: 1;
+  }
+  .stat-lbl {
+    font-size: 11px;
+    color: var(--fg4);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-top: 2px;
+  }
+
+  /* ── LAYOUT PRINCIPAL ─────────────────────────────────── */
+  .main {
+    display: grid;
+    grid-template-columns: 1fr 300px;
+    gap: 1.5rem;
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 2rem;
+  }
+
+  /* ── SEÇÃO ────────────────────────────────────────────── */
+  .section-header {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--bg2);
+  }
+  .section-header h2 {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--fg2);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .section-header .tag {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    background: var(--bg2);
+    color: var(--fg4);
+    padding: 1px 8px;
+    border-radius: 2px;
+    letter-spacing: 0.06em;
+  }
+
+  /* ── LAB GRID ─────────────────────────────────────────── */
+  .lab-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 12px;
+    margin-bottom: 2rem;
+  }
+  .lab-card {
+    background: rgba(40, 40, 40, 0.85);
+    backdrop-filter: blur(4px);
+    border: 1px solid var(--bg2);
+    border-radius: var(--radius);
+    padding: 1rem;
+    cursor: pointer;
+    transition: border-color 0.15s, transform 0.15s, box-shadow 0.15s;
+    position: relative;
+    overflow: hidden;
+  }
+  .lab-card::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0;
+    height: 3px;
+  }
+  .lab-card.open::before { background: var(--green-br); }
+  .lab-card.busy::before { background: var(--yellow-br); }
+  .lab-card.maintenance::before { background: var(--red-br); }
+  .lab-card:hover {
+    border-color: var(--yellow);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+  }
+  .lab-card-top {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    margin-bottom: 8px;
+  }
+  .lab-num {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--fg4);
+    letter-spacing: 0.1em;
+  }
+  .lab-status {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 2px;
+    letter-spacing: 0.06em;
+  }
+  .lab-status.open { background: rgba(152,151,26,.15); color: var(--green-br); border: 1px solid var(--green); }
+  .lab-status.busy { background: rgba(215,153,33,.12); color: var(--yellow-br); border: 1px solid var(--yellow); }
+  .lab-status.maintenance { background: rgba(204,36,29,.12); color: var(--red-br); border: 1px solid var(--red); }
+  .lab-name {
+    font-family: var(--font-mono);
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--fg0);
+    margin-bottom: 4px;
+  }
+  .lab-type {
+    font-size: 12px;
+    color: var(--fg4);
+    margin-bottom: 10px;
+  }
+  .lab-meta {
+    display: flex; gap: 8px; flex-wrap: wrap;
+  }
+  .lab-badge {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    background: var(--bg1);
+    color: var(--fg3);
+    padding: 2px 8px;
+    border-radius: 2px;
+    border: 1px solid var(--bg3);
+  }
+  .lab-badge.warn { color: var(--orange-br); border-color: var(--orange); }
+
+  /* ── MODAL ────────────────────────────────────────────── */
+  .modal-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(29,32,33,0.85);
+    backdrop-filter: blur(4px);
+    z-index: 200;
+    align-items: center; justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--bg0);
+    border: 1px solid var(--bg3);
+    border-radius: var(--radius);
+    width: 100%;
+    max-width: 640px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+    animation: slideUp 0.2s ease;
+  }
+  @keyframes slideUp {
+    from { transform: translateY(20px); opacity: 0; }
+    to   { transform: translateY(0);    opacity: 1; }
+  }
+  .modal-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 1rem 1.2rem;
+    border-bottom: 1px solid var(--bg2);
+    background: var(--bg1);
+  }
+  .modal-title {
+    font-family: var(--font-mono);
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--fg0);
+  }
+  .modal-close {
+    background: none; border: none; cursor: pointer;
+    color: var(--fg4); font-size: 18px;
+    width: 28px; height: 28px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: var(--radius);
+    transition: background 0.15s, color 0.15s;
+  }
+  .modal-close:hover { background: var(--bg2); color: var(--red-br); }
+  .modal-body { padding: 1.2rem; }
+  .modal-section-title {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--fg4);
+    margin-bottom: 8px;
+    margin-top: 16px;
+  }
+  .modal-section-title:first-child { margin-top: 0; }
+
+  /* Equipamentos */
+  .equip-list { display: flex; flex-direction: column; gap: 6px; }
+  .equip-item {
+    display: flex; align-items: center; gap: 10px;
+    background: var(--bg1);
+    border: 1px solid var(--bg2);
+    border-radius: var(--radius);
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+  .equip-dot {
+    width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+  }
+  .equip-dot.ok { background: var(--green-br); }
+  .equip-dot.broken { background: var(--red-br); }
+  .equip-dot.warn { background: var(--yellow-br); }
+  .equip-name { flex: 1; color: var(--fg2); }
+  .equip-qty { font-family: var(--font-mono); font-size: 11px; color: var(--fg4); }
+
+  /* Histórico */
+  .timeline { position: relative; padding-left: 20px; }
+  .timeline::before {
+    content: '';
+    position: absolute; left: 6px; top: 6px; bottom: 6px;
+    width: 1px; background: var(--bg3);
+  }
+  .timeline-item {
+    position: relative;
+    margin-bottom: 12px;
+    font-size: 12px;
+    color: var(--fg3);
+  }
+  .timeline-item::before {
+    content: '';
+    position: absolute; left: -16px; top: 5px;
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--blue-br);
+    border: 1px solid var(--bg3);
+  }
+  .timeline-date {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--fg4);
+    margin-bottom: 2px;
+  }
+
+  /* Reserva form */
+  .form-group { margin-bottom: 12px; }
+  .form-label {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--fg4);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    display: block; margin-bottom: 4px;
+  }
+  .form-input, .form-select {
+    width: 100%;
+    background: var(--bg0-hard);
+    border: 1px solid var(--bg3);
+    border-radius: var(--radius);
+    color: var(--fg1);
+    padding: 8px 12px;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .form-input:focus, .form-select:focus { border-color: var(--yellow); }
+  .form-select option { background: var(--bg0); }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+  /* ── SIDEBAR ──────────────────────────────────────────── */
+  .sidebar { display: flex; flex-direction: column; gap: 1rem; }
+  .widget {
+    background: rgba(40, 40, 40, 0.85);
+    backdrop-filter: blur(4px);
+    border: 1px solid var(--bg2);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  .widget-header {
+    background: var(--bg1);
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--bg2);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--fg3);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .widget-body { padding: 12px; }
+
+  /* agenda widget */
+  .agenda-item {
+    display: flex; gap: 10px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--bg1);
+    font-size: 12px;
+  }
+  .agenda-item:last-child { border-bottom: none; }
+  .agenda-time {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--yellow-br);
+    white-space: nowrap;
+    min-width: 48px;
+  }
+  .agenda-info { flex: 1; }
+  .agenda-lab { color: var(--fg2); font-weight: 600; }
+  .agenda-who { color: var(--fg4); font-size: 11px; }
+
+  /* legenda */
+  .legend-item {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 12px; color: var(--fg3);
+    margin-bottom: 6px;
+  }
+  .legend-dot {
+    width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+  }
+
+  /* projeto info */
+  .info-row {
+    display: flex; justify-content: space-between;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--bg1);
+    font-size: 12px;
+  }
+  .info-row:last-child { border-bottom: none; }
+  .info-key { color: var(--fg4); font-family: var(--font-mono); font-size: 11px; }
+  .info-val { color: var(--fg2); text-align: right; }
+
+  /* tag badge */
+  .tag-list { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+  .tag {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 2px;
+    border: 1px solid;
+  }
+  .tag.green  { color: var(--green-br);  border-color: var(--green);  background: rgba(152,151,26,.1); }
+  .tag.blue   { color: var(--blue-br);   border-color: var(--blue);   background: rgba(69,133,136,.1); }
+  .tag.aqua   { color: var(--aqua-br);   border-color: var(--aqua);   background: rgba(104,157,106,.1); }
+  .tag.orange { color: var(--orange-br); border-color: var(--orange); background: rgba(214,93,14,.1); }
+  .tag.purple { color: var(--purple-br); border-color: var(--purple); background: rgba(177,98,134,.1); }
+
+  /* ── TOAST ────────────────────────────────────────────── */
+  .toast-container {
+    position: fixed; bottom: 1.5rem; right: 1.5rem;
+    display: flex; flex-direction: column; gap: 8px;
+    z-index: 500;
+  }
+  .toast {
+    background: var(--bg1);
+    border: 1px solid var(--bg3);
+    border-left: 4px solid var(--green-br);
+    padding: 10px 16px;
+    border-radius: var(--radius);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--fg1);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+    animation: toastIn 0.2s ease, toastOut 0.2s ease 2.8s forwards;
+    max-width: 280px;
+  }
+  .toast.error { border-left-color: var(--red-br); }
+  @keyframes toastIn  { from { transform: translateX(20px); opacity: 0; } }
+  @keyframes toastOut { to   { transform: translateX(20px); opacity: 0; } }
+
+  /* ── FOOTER ───────────────────────────────────────────── */
+  footer {
+    margin-top: 2rem;
+    background: rgba(40, 40, 40, 0.9);
+    backdrop-filter: blur(5px);
+    border-top: 1px solid var(--bg2);
+    padding: 1.2rem 2rem;
+    display: flex; align-items: center; justify-content: space-between;
+    flex-wrap: wrap; gap: 8px;
+  }
+  footer .footer-brand {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--fg4);
+  }
+  footer .footer-brand span { color: var(--yellow-br); }
+  footer .footer-right {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--bg4);
+  }
+
+  /* ── RESPONSIVE ───────────────────────────────────────── */
+  @media (max-width: 900px) {
+    .main { grid-template-columns: 1fr; }
+    .hero { grid-template-columns: 1fr; }
+    .hero-terminal { display: none; }
+    .stats-bar { grid-template-columns: repeat(2, 1fr); }
+    .topbar-nav { display: none; }
+    .form-row { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ── VIDEO BACKGROUND ────────────────────────────── -->
+<video class="bg-video" autoplay loop muted playsinline>
+  <source src="bowser.mp4" type="video/mp4">
+</video>
+<div class="bg-overlay"></div>
+
+<!-- ── TOPBAR ──────────────────────────────────────── -->
+<header class="topbar">
+  <div class="topbar-brand">
+    <span>⬡</span>
+    <span>Laboratórios Concentrados</span>
+    <span class="dot">·</span>
+    <span class="org">Schwarzes Gehirn</span>
+  </div>
+  <nav>
+    <ul class="topbar-nav">
+      <li><a href="#labs" class="active">Labs</a></li>
+      <li><a href="#reservar">Reservar</a></li>
+      <li><a href="#historico">Histórico</a></li>
+      <li><a href="#sobre">Sobre</a></li>
+    </ul>
+  </nav>
+  <div class="status-pill">sistema online</div>
+</header>
+
+<!-- ── HERO ────────────────────────────────────────── -->
+<section class="hero">
+  <div>
+    <div class="hero-pre">IFSP — Informados Inglórios · 3° Info</div>
+    <h1>Gestão de<br><span>Laboratórios de TI</span> em Tempo Real</h1>
+    <p class="hero-sub">
+      Reserva de horários, monitoramento de computadores e equipamentos para os 8 Laboratórios de Informática (A até H) do IFSP. Livre, gratuito e open source.
+    </p>
+    <div class="hero-actions">
+      <a href="#labs" class="btn btn-primary">▶ Ver Laboratórios</a>
+      <a href="#reservar" class="btn btn-secondary">＋ Fazer Reserva</a>
+      <a href="#sobre" class="btn btn-ghost">ℹ Sobre o projeto</a>
+    </div>
+  </div>
+
+  <div class="hero-terminal">
+    <div class="term-bar">
+      <div class="term-dot r"></div>
+      <div class="term-dot y"></div>
+      <div class="term-dot g"></div>
+      <span class="term-title">schwarzes-gehirn ~ api</span>
+    </div>
+    <div class="term-body">
+      <div><span class="prompt">$</span> <span class="cmd">GET /api/labs/status</span></div>
+      <div class="out">{</div>
+      <div class="out">&nbsp; <span class="hi">"total"</span>: <span class="hi2" id="term-total">8</span>,</div>
+      <div class="out">&nbsp; <span class="hi">"open"</span>: <span class="hi3" id="term-open">5</span>,</div>
+      <div class="out">&nbsp; <span class="hi">"busy"</span>: <span class="hi2" id="term-busy">2</span>,</div>
+      <div class="out">&nbsp; <span class="hi">"maintenance"</span>: <span class="hi2" id="term-maint">1</span>,</div>
+      <div class="out">&nbsp; <span class="hi">"next_free"</span>: <span class="hi3">"14:00"</span></div>
+      <div class="out">}</div>
+      <div style="margin-top:8px"><span class="prompt">$</span> <span class="cursor"></span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ── STATS ────────────────────────────────────────── -->
+<div class="stats-bar">
+  <div class="stat-item">
+    <div class="stat-icon">🖥</div>
+    <div>
+      <div class="stat-val" id="stat-total">8</div>
+      <div class="stat-lbl">Laboratórios de TI</div>
+    </div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-icon">✅</div>
+    <div>
+      <div class="stat-val" id="stat-open">5</div>
+      <div class="stat-lbl">Disponíveis</div>
+    </div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-icon">⚠️</div>
+    <div>
+      <div class="stat-val" id="stat-broken">0</div>
+      <div class="stat-lbl">Equipamentos com defeito</div>
+    </div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-icon">📅</div>
+    <div>
+      <div class="stat-val" id="stat-res">4</div>
+      <div class="stat-lbl">Reservas hoje</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── MAIN CONTENT ─────────────────────────────────── -->
+<main class="main">
+  <div class="content">
+
+    <!-- LAB GRID -->
+    <section id="labs">
+      <div class="section-header">
+        <h2>Laboratórios de Informática (A - H)</h2>
+        <span class="tag">atualizado agora</span>
+      </div>
+      <div class="lab-grid" id="lab-grid">
+        <!-- gerado por JS -->
+      </div>
+    </section>
+
+    <!-- RESERVAR -->
+    <section id="reservar" style="margin-bottom:2rem;">
+      <div class="section-header">
+        <h2>Fazer Reserva</h2>
+        <span class="tag">requer autorização</span>
+      </div>
+      <div style="background:rgba(40, 40, 40, 0.85);backdrop-filter:blur(4px);border:1px solid var(--bg2);border-radius:var(--radius);padding:1.2rem;">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Laboratório</label>
+            <select class="form-select" id="res-lab">
+              <option value="">Selecionar...</option>
+              <!-- Opções geradas dinamicamente de A a H -->
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Data</label>
+            <input type="date" class="form-input" id="res-date">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Horário início</label>
+            <input type="time" class="form-input" id="res-start">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Horário fim</label>
+            <input type="time" class="form-input" id="res-end">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Nome / RA</label>
+          <input type="text" class="form-input" id="res-name" placeholder="Ex: Emanoel Batista — RA 2023001">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Finalidade</label>
+          <input type="text" class="form-input" id="res-purpose" placeholder="Ex: Desenvolvimento Web, Algoritmos, Projeto Integrador...">
+        </div>
+        <button class="btn btn-primary" onclick="submitReserva()" style="width:100%;justify-content:center;margin-top:4px;">
+          ＋ Confirmar Reserva
+        </button>
+      </div>
+    </section>
+
+    <!-- HISTÓRICO -->
+    <section id="historico">
+      <div class="section-header">
+        <h2>Histórico de Eventos</h2>
+        <span class="tag">últimos 30 dias</span>
+      </div>
+      <div style="background:rgba(40, 40, 40, 0.85);backdrop-filter:blur(4px);border:1px solid var(--bg2);border-radius:var(--radius);padding:1.2rem;">
+        <div class="timeline" id="timeline">
+          <!-- gerado por JS -->
+        </div>
+      </div>
+    </section>
+
+  </div><!-- /content -->
+
+  <!-- ── SIDEBAR ──────────────────────────────────────── -->
+  <aside class="sidebar">
+
+    <!-- Agenda do dia -->
+    <div class="widget">
+      <div class="widget-header">📅 Agenda de hoje</div>
+      <div class="widget-body" id="agenda-widget">
+        <!-- JS -->
+      </div>
+    </div>
+
+    <!-- Legenda -->
+    <div class="widget">
+      <div class="widget-header">⬡ Legenda</div>
+      <div class="widget-body">
+        <div class="legend-item"><div class="legend-dot" style="background:var(--green-br)"></div> Disponível</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--yellow-br)"></div> Em uso</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--red-br)"></div> Manutenção / Fechado</div>
+        <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--bg2);">
+          <div style="font-family:var(--font-mono);font-size:11px;color:var(--fg4);margin-bottom:6px;">TIPO</div>
+          <div class="legend-item">🖥 Todos os Labs: Informática</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sobre o projeto -->
+    <div class="widget" id="sobre">
+      <div class="widget-header">ℹ Sobre o Projeto</div>
+      <div class="widget-body">
+        <div class="info-row">
+          <span class="info-key">Projeto</span>
+          <span class="info-val">Labs Concentrados</span>
+        </div>
+        <div class="info-row">
+          <span class="info-key">Org.</span>
+          <span class="info-val">Schwarzes Gehirn</span>
+        </div>
+        <div class="info-row">
+          <span class="info-key">Grupo</span>
+          <span class="info-val">Informados Inglórios</span>
+        </div>
+        <div class="info-row">
+          <span class="info-key">Turma</span>
+          <span class="info-val">3° Informática — IFSP</span>
+        </div>
+        <div class="info-row">
+          <span class="info-key">Membros</span>
+          <span class="info-val">Emanoel · Vinícius · Matheus · Luiz</span>
+        </div>
+        <div class="info-row">
+          <span class="info-key">Plataforma</span>
+          <span class="info-val">Web (open source)</span>
+        </div>
+        <div class="tag-list" style="margin-top:10px;">
+          <span class="tag green">open source</span>
+          <span class="tag blue">gratuito</span>
+          <span class="tag aqua">IFSP</span>
+          <span class="tag orange">leve</span>
+          <span class="tag purple">PI 2026</span>
+        </div>
+        <div style="margin-top:12px;font-size:12px;color:var(--fg4);line-height:1.6;">
+          <strong style="color:var(--fg3);">Missão:</strong> Promover agendamento eficiente
+          dos 8 laboratórios de informática (A a H) para estudantes e professores, garantindo um ambiente seguro e produtivo.
+        </div>
+        <div style="margin-top:8px;font-size:12px;color:var(--fg4);line-height:1.6;">
+          <strong style="color:var(--fg3);">Visão:</strong> Ser modelo adotado por outras
+          unidades do IF e escolas técnicas.
+        </div>
+      </div>
+    </div>
+
+  </aside>
+</main>
+
+<!-- ── MODAL DETALHES DO LAB ─────────────────────────── -->
+<div class="modal-overlay" id="lab-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="modal-title">Lab Informática A</span>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body" id="modal-body">
+      <!-- conteúdo dinâmico -->
+    </div>
+  </div>
+</div>
+
+<!-- ── TOAST ─────────────────────────────────────────── -->
+<div class="toast-container" id="toast-container"></div>
+
+<!-- ── FOOTER ────────────────────────────────────────── -->
+<footer>
+  <div class="footer-brand">
+    ⬡ <span>Schwarzes Gehirn</span> · Laboratórios Concentrados · IFSP
+  </div>
+  <div class="footer-right">
+    open source · livre · gratuito · PI 2026 · Informados Inglórios
+  </div>
+</footer>
+
+<!-- ══════════════════════════════════════════════════ -->
+<!-- JAVASCRIPT                                         -->
+<!-- ══════════════════════════════════════════════════ -->
+<script>
+// ── DADOS ATUALIZADOS DOS LABS (A ATÉ H - TODOS INFORMÁTICA) ──────────────────
+const LABS = [
+  {
+    id: 1, num: "LAB-A", name: "Lab Informática A", type: "Desenvolvimento de Software",
+    status: "open", capacity: 30, computers: 30,
+    equipment: [
+      { name: "Computadores Dell Vostro i5", qty: 30, status: "ok" },
+      { name: "Projetor Epson Full HD", qty: 1, status: "ok" },
+      { name: "Mouse USB Dell", qty: 2, status: "broken" },
+      { name: "Teclado USB Dell", qty: 1, status: "broken" },
+    ],
+    history: [
+      { date: "15/03/2026", event: "Atualização de IDEs (VS Code & JetBrains)" },
+      { date: "10/03/2026", event: "Troca de 3 periféricos danificados" },
+      { date: "01/03/2026", event: "Maratona de Programação Interna" },
+    ],
+    icon: "🖥"
+  },
+  {
+    id: 2, num: "LAB-B", name: "Lab Informática B", type: "Sistemas Operacionais",
+    status: "busy", capacity: 25, computers: 25,
+    equipment: [
+      { name: "Computadores HP ProDesk", qty: 25, status: "ok" },
+      { name: "Projetor Datashow", qty: 1, status: "warn" },
+      { name: "Monitor HP 21.5\"", qty: 2, status: "broken" },
+    ],
+    history: [
+      { date: "20/03/2026", event: "Aula prática — Instalação Linux Dual Boot" },
+      { date: "12/03/2026", event: "Manutenção preventiva nos coolers" },
+    ],
+    icon: "🖥"
+  },
+  {
+    id: 3, num: "LAB-C", name: "Lab Informática C", type: "Redes & Segurança",
+    status: "open", capacity: 28, computers: 28,
+    equipment: [
+      { name: "Computadores Lenovo ThinkCentre", qty: 28, status: "ok" },
+      { name: "Switches gerenciáveis 24p", qty: 3, status: "ok" },
+      { name: "Cabos de Rede Cat6", qty: 30, status: "ok" },
+      { name: "Placa de rede Gigabit extra", qty: 2, status: "broken" },
+    ],
+    history: [
+      { date: "18/03/2026", event: "Prática de Cabeamento Estruturado" },
+      { date: "08/03/2026", event: "Configuração de VLANs para turmas de TI" },
+    ],
+    icon: "🖥"
+  },
+  {
+    id: 4, num: "LAB-D", name: "Lab Informática D", type: "Banco de Dados",
+    status: "open", capacity: 32, computers: 32,
+    equipment: [
+      { name: "Computadores Positivo/Dell", qty: 32, status: "ok" },
+      { name: "Projetor de Alta Definição", qty: 1, status: "ok" },
+      { name: "Estabilizador Industrial", qty: 2, status: "ok" },
+    ],
+    history: [
+      { date: "21/03/2026", event: "Instalação do Server PostgreSQL & MySQL" },
+      { date: "14/03/2026", event: "Limpeza física das estações" },
+    ],
+    icon: "🖥"
+  },
+  {
+    id: 5, num: "LAB-E", name: "Lab Informática E", type: "Programação Web",
+    status: "busy", capacity: 25, computers: 25,
+    equipment: [
+      { name: "Computadores Asus/Dell", qty: 25, status: "ok" },
+      { name: "Monitores Ultrawide", qty: 25, status: "ok" },
+      { name: "Mousepad Ergônomico", qty: 3, status: "broken" },
+    ],
+    history: [
+      { date: "22/03/2026", event: "Workshop Node.js & React" },
+      { date: "11/03/2026", event: "Troca de fontes de alimentação" },
+    ],
+    icon: "🖥"
+  },
+  {
+    id: 6, num: "LAB-F", name: "Lab Informática F", type: "Hardware & Redes",
+    status: "maintenance", capacity: 30, computers: 30,
+    equipment: [
+      { name: "Computadores Dell OptiPlex", qty: 30, status: "warn" },
+      { name: "Bancadas de Testes de Hardware", qty: 6, status: "ok" },
+      { name: "Kit Ferramentas e Multímetros", qty: 8, status: "broken" },
+    ],
+    history: [
+      { date: "22/03/2026", event: "Manutenção na rede elétrica e switches" },
+      { date: "19/03/2026", event: "Aguardando envio de novos componentes" },
+    ],
+    icon: "🖥"
+  },
+  {
+    id: 7, num: "LAB-G", name: "Lab Informática G", type: "Inteligência Artificial",
+    status: "open", capacity: 24, computers: 24,
+    equipment: [
+      { name: "Workstations HP com GPU dedicada", qty: 24, status: "ok" },
+      { name: "Projetor Laser 4K", qty: 1, status: "ok" },
+      { name: "Ar Condicionado Central", qty: 2, status: "ok" },
+    ],
+    history: [
+      { date: "17/03/2026", event: "Treinamento de Modelos de IA — Python/PyTorch" },
+      { date: "05/03/2026", event: "Upgrade de RAM para 32GB em todas as máquinas" },
+    ],
+    icon: "🖥"
+  },
+  {
+    id: 8, num: "LAB-H", name: "Lab Informática H", type: "Arquitetura de Computadores",
+    status: "open", capacity: 30, computers: 30,
+    equipment: [
+      { name: "Computadores Lenovo i7", qty: 30, status: "ok" },
+      { name: "Kits de Aprendizado de Microcontroladores", qty: 15, status: "ok" },
+      { name: "Monitores Secundários", qty: 1, status: "broken" },
+    ],
+    history: [
+      { date: "16/03/2026", event: "Simulação de Sistemas Digitais em C/C++" },
+      { date: "09/03/2026", event: "Organização do acervo de componentes" },
+    ],
+    icon: "🖥"
+  }
+];
+
+// AGENDA ATUALIZADA (LABS A - H)
+const AGENDA = [
+  { time: "13:00", lab: "Lab Informática B", who: "Prof. Carlos — Sistemas Operacionais" },
+  { time: "14:30", lab: "Lab Informática E", who: "Prof. Marcos — Programação Web" },
+  { time: "15:00", lab: "Lab Informática A", who: "Emanoel B. — Projeto Integrador" },
+  { time: "16:00", lab: "Lab Informática G", who: "Luiz & Vinícius — Pesquisa em IA" },
+];
+
+// HISTÓRICO ATUALIZADO (LABS A - H)
+const HISTORY = [
+  { date: "22/03", event: "Manutenção da infraestrutura elétrica — Lab Informática F" },
+  { date: "22/03", event: "Workshop Node.js & React — Lab Informática E" },
+  { date: "21/03", event: "Instalação do Servidor PostgreSQL — Lab Informática D" },
+  { date: "20/03", event: "Aula Prática de Linux Dual Boot — Lab Informática B" },
+  { date: "18/03", event: "Prática de Cabeamento de Redes — Lab Informática C" },
+  { date: "17/03", event: "Treinamento de Aprendizado de Máquina — Lab Informática G" },
+  { date: "15/03", event: "Atualização de pacotes de DevTools — Lab Informática A" },
+  { date: "09/03", event: "Organização dos laboratórios de TI para a semana" },
+];
+
+// ── RENDER LAB GRID ──────────────────────────────────
+function renderLabs() {
+  const grid = document.getElementById('lab-grid');
+  grid.innerHTML = LABS.map(lab => {
+    const brokenCount = lab.equipment.reduce((acc, e) => acc + (e.status === 'broken' ? e.qty : 0), 0);
+    return `
+    <div class="lab-card ${lab.status}" onclick="openModal(${lab.id})">
+      <div class="lab-card-top">
+        <span class="lab-num">${lab.num}</span>
+        <span class="lab-status ${lab.status}">${
+          lab.status === 'open' ? '● Disponível' :
+          lab.status === 'busy' ? '● Em uso' : '● Manutenção'
+        }</span>
+      </div>
+      <div class="lab-name">${lab.icon} ${lab.name}</div>
+      <div class="lab-type">${lab.type}</div>
+      <div class="lab-meta">
+        <span class="lab-badge">👥 ${lab.capacity} lugares</span>
+        <span class="lab-badge">🖥 ${lab.computers} PCs</span>
+        ${brokenCount > 0 ? `<span class="lab-badge warn">⚠ ${brokenCount} defeito(s)</span>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── UPDATE STATS DINAMICAMENTE ───────────────────────
+function updateStats() {
+  const total = LABS.length;
+  const openCount = LABS.filter(l => l.status === 'open').length;
+  const busyCount = LABS.filter(l => l.status === 'busy').length;
+  const maintCount = LABS.filter(l => l.status === 'maintenance').length;
+  
+  let totalBroken = 0;
+  LABS.forEach(l => {
+    l.equipment.forEach(e => {
+      if (e.status === 'broken') totalBroken += e.qty;
+    });
+  });
+
+  // Atualizar Stats Bar
+  document.getElementById('stat-total').textContent = total;
+  document.getElementById('stat-open').textContent = openCount;
+  document.getElementById('stat-broken').textContent = totalBroken;
+
+  // Atualizar Terminal Hero
+  document.getElementById('term-total').textContent = total;
+  document.getElementById('term-open').textContent = openCount;
+  document.getElementById('term-busy').textContent = busyCount;
+  document.getElementById('term-maint').textContent = maintCount;
+}
+
+// ── POPULATE SELECT DROPDOWN ─────────────────────────
+function populateSelects() {
+  const select = document.getElementById('res-lab');
+  select.innerHTML = '<option value="">Selecionar...</option>' + 
+    LABS.map(lab => `<option value="${lab.name}">${lab.name} (${lab.num})</option>`).join('');
+}
+
+// ── RENDER AGENDA ─────────────────────────────────────
+function renderAgenda() {
+  const w = document.getElementById('agenda-widget');
+  w.innerHTML = AGENDA.map(a => `
+    <div class="agenda-item">
+      <span class="agenda-time">${a.time}</span>
+      <div class="agenda-info">
+        <div class="agenda-lab">${a.lab}</div>
+        <div class="agenda-who">${a.who}</div>
+      </div>
+    </div>`).join('');
+}
+
+// ── RENDER HISTORY ────────────────────────────────────
+function renderHistory() {
+  const tl = document.getElementById('timeline');
+  tl.innerHTML = HISTORY.map(h => `
+    <div class="timeline-item">
+      <div class="timeline-date">${h.date}</div>
+      <div>${h.event}</div>
+    </div>`).join('');
+}
+
+// ── MODAL ─────────────────────────────────────────────
+function openModal(id) {
+  const lab = LABS.find(l => l.id === id);
+  if (!lab) return;
+  document.getElementById('modal-title').textContent = `${lab.icon} ${lab.name} — ${lab.num}`;
+
+  const equip = lab.equipment.map(e => `
+    <div class="equip-item">
+      <div class="equip-dot ${e.status}"></div>
+      <span class="equip-name">${e.name}</span>
+      <span class="equip-qty">× ${e.qty}</span>
+    </div>`).join('');
+
+  const hist = lab.history.map(h => `
+    <div class="timeline-item">
+      <div class="timeline-date">${h.date}</div>
+      <div>${h.event}</div>
+    </div>`).join('');
+
+  document.getElementById('modal-body').innerHTML = `
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:1rem;">
+      <span class="lab-status ${lab.status}" style="font-size:12px">${
+        lab.status==='open'?'● Disponível':lab.status==='busy'?'● Em uso':'● Manutenção'
+      }</span>
+      <span class="lab-badge">👥 ${lab.capacity} lugares</span>
+      <span class="lab-badge">🖥 ${lab.computers} PCs</span>
+      <span class="lab-badge">${lab.type}</span>
+    </div>
+
+    <div class="modal-section-title">Equipamentos & Computadores</div>
+    <div class="equip-list">${equip}</div>
+
+    <div class="modal-section-title">Histórico do Laboratório</div>
+    <div class="timeline">${hist}</div>
+
+    ${lab.status !== 'maintenance' ? `
+    <div class="modal-section-title">Reservar este laboratório</div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Data</label>
+        <input type="date" class="form-input" id="m-date">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Horário</label>
+        <input type="time" class="form-input" id="m-time">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Seu nome / RA</label>
+      <input type="text" class="form-input" id="m-name" placeholder="Nome — RA">
+    </div>
+    <button class="btn btn-primary" onclick="submitModalReserva('${lab.name}')" style="width:100%;justify-content:center;margin-top:4px;">
+      ＋ Confirmar Reserva
+    </button>` : `
+    <div style="background:rgba(204,36,29,.1);border:1px solid var(--red);border-radius:var(--radius);padding:10px 14px;margin-top:12px;">
+      <span style="color:var(--red-br);font-family:var(--font-mono);font-size:12px;">
+        ⛔ Laboratório fechado temporariamente para manutenção.
+      </span>
+    </div>`}
+  `;
+
+  document.getElementById('lab-modal').classList.add('open');
+  
+  const mDate = document.getElementById('m-date');
+  if (mDate) mDate.min = new Date().toISOString().split('T')[0];
+}
+
+function closeModal() {
+  document.getElementById('lab-modal').classList.remove('open');
+}
+document.getElementById('lab-modal').addEventListener('click', e => {
+  if (e.target === e.currentTarget) closeModal();
+});
+
+// ── TOAST ─────────────────────────────────────────────
+function showToast(msg, type='ok') {
+  const c = document.getElementById('toast-container');
+  const t = document.createElement('div');
+  t.className = 'toast' + (type==='error'?' error':'');
+  t.textContent = msg;
+  c.appendChild(t);
+  setTimeout(() => t.remove(), 3200);
+}
+
+// ── RESERVA ───────────────────────────────────────────
+function submitReserva() {
+  const lab  = document.getElementById('res-lab').value;
+  const date = document.getElementById('res-date').value;
+  const name = document.getElementById('res-name').value.trim();
+  if (!lab || !date || !name) {
+    showToast('⚠ Preencha todos os campos obrigatórios.', 'error'); return;
+  }
+  showToast(`✔ Reserva registrada — ${lab} — ${date}`);
+  
+  HISTORY.unshift({ date: date.split('-').slice(1).reverse().join('/'), event: `Reserva — ${name} — ${lab}` });
+  renderHistory();
+
+  document.getElementById('res-lab').value = '';
+  document.getElementById('res-date').value = '';
+  document.getElementById('res-name').value = '';
+  document.getElementById('res-purpose').value = '';
+  document.getElementById('stat-res').textContent =
+    parseInt(document.getElementById('stat-res').textContent) + 1;
+}
+
+function submitModalReserva(labName) {
+  const date = document.getElementById('m-date')?.value;
+  const name = document.getElementById('m-name')?.value?.trim();
+  if (!date || !name) {
+    showToast('⚠ Preencha data e nome.', 'error'); return;
+  }
+  showToast(`✔ Reserva em ${labName} — ${date}`);
+  
+  HISTORY.unshift({ date: date.split('-').slice(1).reverse().join('/'), event: `Reserva — ${name} — ${labName}` });
+  renderHistory();
+  
+  document.getElementById('stat-res').textContent =
+    parseInt(document.getElementById('stat-res').textContent) + 1;
+  closeModal();
+}
+
+// ── INIT ──────────────────────────────────────────────
+renderLabs();
+updateStats();
+populateSelects();
+renderAgenda();
+renderHistory();
+
+const today = new Date().toISOString().split('T')[0];
+document.querySelectorAll('input[type="date"]').forEach(i => i.min = today);
+</script>
+</body>
+</html>
